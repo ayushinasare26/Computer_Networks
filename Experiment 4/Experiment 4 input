@@ -1,0 +1,76 @@
+// Ayushi Nasare 24070521174
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#define PORT 10046
+#define BUF_SIZE 1024
+
+int main()
+{
+    int sockfd;
+    struct sockaddr_in server, client;
+    char buffer[BUF_SIZE];
+    socklen_t len;
+
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (sockfd < 0)
+    {
+        perror("Socket creation failed");
+        return 1;
+    }
+
+    printf("UDP socket created successfully.\n");
+
+    memset(&server, 0, sizeof(server));
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = INADDR_ANY;
+    server.sin_port = htons(PORT);
+
+    if (bind(sockfd, (struct sockaddr *)&server, sizeof(server)) < 0)
+    {
+        perror("Bind failed");
+        close(sockfd);
+        return 1;
+    }
+
+    printf("UDP server is running on port %d...\n", PORT);
+
+    while (1)
+    {
+        memset(buffer, 0, BUF_SIZE);
+        len = sizeof(client);
+
+        int n = recvfrom(sockfd, buffer, BUF_SIZE - 1, 0,
+                         (struct sockaddr *)&client, &len);
+
+        if (n < 0)
+        {
+            perror("recvfrom failed");
+            break;
+        }
+
+        buffer[n] = '\0';
+
+        printf("Message received from client: %s", buffer);
+
+        if (sendto(sockfd, buffer, n, 0,
+                   (struct sockaddr *)&client, len) < 0)
+        {
+            perror("sendto failed");
+            break;
+        }
+
+        printf("Message sent back to client.\n");
+    }
+
+    close(sockfd);
+    return 0;
+}
